@@ -97,17 +97,56 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cv.put(COLUMN_USERNAME, username);
         cv.put(COLUMN_PASSWORD, password);
         long result = db.insert(TABLE_USERS, null, cv);
+
         if (result == -1) {
+
             Toast.makeText(context, String.format("%s username is already taken", username), Toast.LENGTH_SHORT).show();
             db.close();
             return false;
         } else {
-            Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show();
-            db.close();
-            return true;
-        }
 
+            Cursor cursor = db.query(TABLE_USERS, new String[]{COLUMN_USER_ID}, COLUMN_USERNAME + " = ?", new String[]{username}, null, null, null);
+
+            if (cursor != null) {
+                if (cursor.moveToFirst()) {
+                    int userIdColumnIndex = cursor.getColumnIndex(COLUMN_USER_ID);
+                    if (userIdColumnIndex != -1) {
+                        long userId = cursor.getLong(userIdColumnIndex);
+
+                        ContentValues walletValues = new ContentValues();
+                        walletValues.put(COLUMN_WALLET_USER_ID, userId);
+                        walletValues.put(COLUMN_WALLET_BALANCE, 0.0);
+
+                        long walletResult = db.insert(TABLE_WALLETS, null, walletValues);
+
+                        if (walletResult == -1) {
+                            Toast.makeText(context, "Error creating wallet", Toast.LENGTH_SHORT).show();
+                            db.close();
+                            return false;
+                        } else {
+                            Toast.makeText(context, "Registration successful", Toast.LENGTH_SHORT).show();
+                            db.close();
+                            return true;
+                        }
+                    } else {
+                        Toast.makeText(context, "User ID column not found", Toast.LENGTH_SHORT).show();
+                        db.close();
+                        return false;
+                    }
+                } else {
+                    Toast.makeText(context, "Error fetching user data", Toast.LENGTH_SHORT).show();
+                    db.close();
+                    return false;
+                }
+            } else {
+                Toast.makeText(context, "Error executing query", Toast.LENGTH_SHORT).show();
+                db.close();
+                return false;
+            }
+        }
     }
+
+
 
     public boolean userAuth(String username, String password) {
         SQLiteDatabase db = this.getReadableDatabase();
